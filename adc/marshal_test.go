@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/direct-connect/go-dc/adc/types"
+	"github.com/gswly/go-dc/adc/types"
 	"github.com/stretchr/testify/require"
 )
 

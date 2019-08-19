@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/direct-connect/go-dc/lineproto"
+	"github.com/gswly/go-dc/lineproto"
 )
 
 func NewReader(r io.Reader) *Reader {

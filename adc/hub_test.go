@@ -3,7 +3,7 @@ package adc
 import (
 	"testing"
 
-	"github.com/direct-connect/go-dc/tiger"
+	"github.com/gswly/go-dc/tiger"
 )
 
 var hubCases = []casesMessageEntry{

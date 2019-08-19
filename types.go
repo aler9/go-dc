@@ -1,5 +1,5 @@
 package dc
 
-import "github.com/direct-connect/go-dc/types"
+import "github.com/gswly/go-dc/types"
 
 type Software = types.Software

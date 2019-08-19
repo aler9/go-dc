@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/direct-connect/go-dc/tiger"
+	"github.com/gswly/go-dc/tiger"
 )
 
 var (

@@ -1,4 +1,4 @@
-module github.com/direct-connect/go-dc
+module github.com/gswly/go-dc
 
 require (
 	github.com/cxmcc/tiger v0.0.0-20170524142333-bde35e2713d7

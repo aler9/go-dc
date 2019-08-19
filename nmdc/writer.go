@@ -7,7 +7,7 @@ import (
 	"io"
 	"sync/atomic"
 
-	"github.com/direct-connect/go-dc/lineproto"
+	"github.com/gswly/go-dc/lineproto"
 )
 
 func NewWriter(w io.Writer) *Writer {
