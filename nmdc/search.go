@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/direct-connect/go-dc/tiger"
+	"github.com/aler9/go-dc/tiger"
 )
 
 func init() {

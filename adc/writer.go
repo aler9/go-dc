@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/direct-connect/go-dc/lineproto"
+	"github.com/aler9/go-dc/lineproto"
 )
 
 func NewWriter(w io.Writer) *Writer {

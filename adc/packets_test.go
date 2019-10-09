@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/direct-connect/go-dc/adc/types"
+	"github.com/aler9/go-dc/adc/types"
 	"github.com/stretchr/testify/require"
 )
 

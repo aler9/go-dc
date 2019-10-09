@@ -3,7 +3,7 @@ package nmdc
 import (
 	"testing"
 
-	"github.com/direct-connect/go-dc/types"
+	"github.com/aler9/go-dc/types"
 )
 
 var pingCases = []casesMessageEntry{

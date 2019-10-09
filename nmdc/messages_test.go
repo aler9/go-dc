@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/direct-connect/go-dc/tiger"
+	"github.com/aler9/go-dc/tiger"
 	"github.com/stretchr/testify/require"
 )
 
