@@ -10,17 +10,19 @@ import (
 	"github.com/aler9/go-dc/lineproto"
 )
 
+// NewWriter creates a new NMDC protocol writer with a default buffer size.
 func NewWriter(w io.Writer) *Writer {
 	return NewWriterSize(w, 0)
 }
 
+// NewWriterSize creates a new NMDC protocol writer with a specified buffer size.
 func NewWriterSize(w io.Writer, buf int) *Writer {
 	return &Writer{
 		Writer: lineproto.NewWriterSize(w, buf),
 	}
 }
 
-// Writer is not safe for concurrent use.
+// Writer is protocol message writer for NMDC protocol. It's not safe for a concurrent use.
 type Writer struct {
 	*lineproto.Writer
 
@@ -50,6 +52,12 @@ func (w *Writer) Encoder() *TextEncoder {
 // SetEncoder sets a text encoding used to write messages.
 func (w *Writer) SetEncoder(enc *TextEncoder) {
 	w.enc.Store(enc)
+}
+
+// WriteKeepAlive writes an empty (keep alive) message.
+// It is caller's responsibility to flush the writer.
+func (w *Writer) WriteKeepAlive() error {
+	return w.WriteLine([]byte{lineDelim})
 }
 
 // WriteMsg encodes and writes a NMDC protocol message.

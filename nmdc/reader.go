@@ -17,18 +17,21 @@ const (
 	maxCmdName = 32
 )
 
-var (
-	errExpectedCommand = errors.New("nmdc: expected command, got chat message")
-	errExpectedChat    = errors.New("nmdc: chat message, got command")
-)
-
 type ErrUnexpectedCommand struct {
 	Expected string
 	Received *RawMessage
 }
 
 func (e *ErrUnexpectedCommand) Error() string {
-	return fmt.Sprintf("nmdc: expected %q, got %q", e.Expected, e.Received.Typ)
+	exp := e.Expected
+	if exp == "" {
+		exp = "<chat>"
+	}
+	got := e.Received.Typ
+	if got == "" {
+		got = "<chat>"
+	}
+	return fmt.Sprintf("nmdc: expected %q, got %q", exp, got)
 }
 
 type ErrProtocolViolation = lineproto.ErrProtocolViolation
@@ -43,7 +46,7 @@ func (e *errUnknownEncoding) Error() string {
 
 func NewReader(r io.Reader) *Reader {
 	return &Reader{
-		Reader:     lineproto.NewReader(r, '|'),
+		Reader:     lineproto.NewReader(r, lineDelim),
 		maxCmdName: maxCmdName,
 	}
 }
@@ -151,7 +154,7 @@ read:
 		line, err := r.ReadLine()
 		if err != nil {
 			return err
-		} else if n := len(line); n == 0 || line[n-1] != '|' {
+		} else if n := len(line); n == 0 || line[n-1] != lineDelim {
 			return &ErrProtocolViolation{
 				Err: errors.New("no message delimiter"),
 			}
@@ -229,7 +232,12 @@ read:
 				out = NewMessage(typ)
 				*ptr = out
 			} else if _, ok := out.(*ChatMessage); ok {
-				return errExpectedCommand
+				return &ErrUnexpectedCommand{
+					Expected: "", // chat
+					Received: &RawMessage{
+						Typ: typ, Data: args,
+					},
+				}
 			} else if out.Type() != typ {
 				return &ErrUnexpectedCommand{
 					Expected: out.Type(),
@@ -273,7 +281,13 @@ read:
 				out = &ChatMessage{}
 				*ptr = out
 			} else if _, ok := out.(*ChatMessage); !ok {
-				return errExpectedChat
+				return &ErrUnexpectedCommand{
+					Expected: out.Type(),
+					Received: &RawMessage{
+						// chat
+						Data: args,
+					},
+				}
 			}
 		}
 		err = out.UnmarshalNMDC(dec, args)

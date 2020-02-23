@@ -10,6 +10,8 @@ import (
 	"golang.org/x/text/encoding"
 )
 
+const lineDelim = '|'
+
 var (
 	messages = make(map[string]reflect.Type)
 )
@@ -78,6 +80,14 @@ func IsRegistered(typ string) bool {
 	return ok
 }
 
+// IsRegisteredBytes is like IsRegistered but accepts a byte slice.
+func IsRegisteredBytes(typ []byte) bool {
+	_, ok := messages[string(typ)]
+	return ok
+}
+
+var _ Message = (*RawMessage)(nil)
+
 // RawMessage is a raw NMDC message in the connection encoding.
 type RawMessage struct {
 	Typ  string
@@ -117,10 +127,10 @@ func MarshalTo(enc *TextEncoder, buf *bytes.Buffer, m Message) error {
 	}
 	if n == buf.Len() {
 		// no payload
-		buf.Bytes()[n-1] = '|' // ' ' -> '|'
+		buf.Bytes()[n-1] = lineDelim // ' ' -> '|'
 		return nil
 	}
-	buf.WriteByte('|')
+	buf.WriteByte(lineDelim)
 	return nil
 }
 

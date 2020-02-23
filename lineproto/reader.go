@@ -7,14 +7,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 )
 
 const (
-	readBuf = 2048 // TCP MTU is ~1500
-	maxLine = readBuf * 16
+	readBuf    = 2048 // TCP MTU is ~1500
+	maxLineDef = readBuf * 16
 )
 
 var (
+	errReaderClosed      = errors.New("reader is closed")
 	errBufferExhausted   = errors.New("message is too long")
 	errZlibAlreadyActive = errors.New("zlib already activated")
 	errZlibNotActive     = errors.New("zlib not activate")
@@ -107,7 +109,8 @@ func (r *bufReader) Scan(delim byte) ([]byte, bool, error) {
 // Reader is a line reader that supports the zlib on/off switching procedure
 // required by hub-to-client and client-to-client connections.
 type Reader struct {
-	delim byte
+	delim   byte
+	maxLine int
 
 	cur        *bufReader // current reader; set either to original or compressed
 	original   *bufReader // original reader with buffer
@@ -127,10 +130,33 @@ func NewReader(r io.Reader, delim byte) *Reader {
 	br := newBufReader(r)
 	return &Reader{
 		delim:    delim,
+		maxLine:  maxLineDef,
 		original: br,
 		cur:      br,
 		line:     make([]byte, readBuf),
 	}
+}
+
+// Close the reader and free associated resources.
+func (r *Reader) Close() error {
+	r.original = nil
+	r.cur = nil
+	r.compressed = nil
+
+	r.zlibOn = false
+	if r.zlib != nil {
+		_ = r.zlib.Close()
+		r.zlib = nil
+	}
+
+	r.onLine = nil
+	r.line = nil
+	return nil
+}
+
+// SetMaxLine sets the max allowed protocol line length. Values <= 0 mean no limit.
+func (r *Reader) SetMaxLine(sz int) {
+	r.maxLine = sz
 }
 
 // OnLine registers a hook that is called each time a raw protocol line is read from the connection.
@@ -146,11 +172,14 @@ func (r *Reader) OnLine(fnc func(line []byte) (bool, error)) {
 // a delimiter and is in the connection encoding. The buffer is only valid until the next
 // call to Read or ReadLine.
 func (r *Reader) ReadLine() ([]byte, error) {
+	if r.original == nil {
+		return nil, errReaderClosed
+	}
 	r.line = r.line[:0]
 
 read:
 	for {
-		if len(r.line) >= maxLine {
+		if r.maxLine > 0 && len(r.line) >= r.maxLine {
 			return nil, errBufferExhausted
 		}
 		pref, more, err := r.cur.Scan(r.delim)
@@ -185,6 +214,9 @@ read:
 // Read reads a byte slice, inflates it if zlib is active, and puts the
 // result into buf.
 func (r *Reader) Read(buf []byte) (int, error) {
+	if r.original == nil {
+		return 0, errReaderClosed
+	}
 	n, err := r.cur.Read(buf)
 	if err == io.EOF && r.zlibOn {
 		// if compression was enabled, we need to switch back to original reader
@@ -204,7 +236,9 @@ func (r *Reader) Read(buf []byte) (int, error) {
 
 // EnableZlib activates zlib inflating.
 func (r *Reader) EnableZlib() error {
-	if r.zlibOn {
+	if r.original == nil {
+		return errReaderClosed
+	} else if r.zlibOn {
 		return errZlibAlreadyActive
 	}
 	r.zlibOn = true
@@ -229,4 +263,26 @@ func (r *Reader) EnableZlib() error {
 	}
 	r.cur = r.compressed
 	return nil
+}
+
+// Binary returns a binary reader locked to the given amount of bytes.
+// Caller must close the reader. Reader will automatically drain any unread bytes.
+func (r *Reader) Binary(sz uint64) (io.ReadCloser, error) {
+	if r.original == nil {
+		return nil, errReaderClosed
+	}
+	return &binaryReader{r: io.LimitReader(r, int64(sz))}, nil
+}
+
+type binaryReader struct {
+	r io.Reader
+}
+
+func (r *binaryReader) Read(p []byte) (int, error) {
+	return r.r.Read(p)
+}
+
+func (r *binaryReader) Close() error {
+	_, err := io.Copy(ioutil.Discard, r.r)
+	return err
 }
